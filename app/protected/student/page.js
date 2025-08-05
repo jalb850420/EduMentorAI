@@ -11,11 +11,24 @@
 
 'use client';
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import LogoutButton from "@/components/LogoutButton";
 
 export default function EstudiantePage() {
-  const { authUser } = useAuth();
+  // const { authUser } = useAuth();
+  const { authUser, loading } = useAuth();
+  const router = useRouter();
 
+  useEffect(() => {
+    if (!loading && authUser?.role !== "estudiante") {
+      router.replace("/not-authorized");
+    }
+  }, [authUser, loading]);
+
+  if (loading || authUser?.role !== "estudiante") {
+    return <p className="text-center mt-10 text-gray-600">Validando acceso...</p>;
+  }
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Header */}
