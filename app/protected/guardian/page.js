@@ -12,24 +12,36 @@
 'use client';
 import { useAuth } from "@/hooks/useAuth";
 import LogoutButton from "@/components/LogoutButton";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 
 export default function AcudientePage() {
-  const { authUser } = useAuth();
+  const { authUser, loading } = useAuth();
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchingStudents, setFetchingStudents] = useState(true);
+  const router = useRouter();
 
-  // Cargar estudiantes vinculados al acudiente
+  // Validar acceso: solo acudientes
   useEffect(() => {
-    if (!authUser) return;
+    if (!loading && authUser?.role !== "acudiente") {
+      router.replace("/not-authorized");
+    }
+  }, [authUser, loading]);
+
+  // Cargar estudiantes vinculados
+  useEffect(() => {
+    if (!authUser || authUser.role !== "acudiente") return;
 
     const fetchStudents = async () => {
-      setLoading(true);
+      setFetchingStudents(true);
       try {
-        // Supongamos que en "users" los estudiantes tienen un campo "acudienteId" que es el uid del acudiente
-        const q = query(collection(db, "users"), where("acudienteId", "==", authUser.uid), where("role", "==", "estudiante"));
+        const q = query(
+          collection(db, "users"),
+          where("acudienteId", "==", authUser.uid),
+          where("role", "==", "estudiante")
+        );
         const querySnapshot = await getDocs(q);
 
         const studentsData = querySnapshot.docs.map(doc => ({
@@ -41,12 +53,17 @@ export default function AcudientePage() {
       } catch (error) {
         console.error("Error cargando estudiantes:", error);
       } finally {
-        setLoading(false);
+        setFetchingStudents(false);
       }
     };
 
     fetchStudents();
   }, [authUser]);
+
+  // Mostrar mensaje mientras se valida el acceso
+  if (loading || !authUser || authUser.role !== "acudiente") {
+    return <p className="text-center mt-10 text-gray-600">Validando acceso...</p>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -73,7 +90,7 @@ export default function AcudientePage() {
       <section className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-6">📚 Estudiantes vinculados</h2>
 
-        {loading ? (
+        {fetchingStudents ? (
           <p className="text-gray-600 dark:text-gray-300">Cargando estudiantes...</p>
         ) : students.length === 0 ? (
           <p className="text-gray-600 dark:text-gray-300 italic">No hay estudiantes vinculados.</p>
@@ -82,10 +99,8 @@ export default function AcudientePage() {
             <div key={student.id} className="mb-6 border-b border-gray-300 dark:border-gray-700 pb-4">
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">{student.name}</h3>
               <p><strong>Grado:</strong> {student.grado || "No asignado"}</p>
-              {/* Aquí podrías agregar más detalles, como resumen de materias y logros */}
               <p className="italic text-gray-600 dark:text-gray-400 mt-1">Materias y logros aún no cargados.</p>
 
-              {/* Espacio para plan de mejora */}
               <div className="mt-3">
                 <h4 className="font-semibold text-purple-600 dark:text-purple-400">Plan de mejora</h4>
                 <p className="italic text-gray-500 dark:text-gray-400">No disponible aún</p>

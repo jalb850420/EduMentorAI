@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { auth } from "@/firebaseConfig";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { createUserIfNotExists } from "@/userService";
 
 export default function LoginPage() {
@@ -10,6 +11,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // useEffect(() => {
   //   const error = searchParams.get("error");
@@ -40,6 +43,17 @@ export default function LoginPage() {
     }
   };
 
+  const handleEmailLogin = async () => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await createUserIfNotExists(result.user); // ya lo usas en Google
+      router.push("/");
+    } catch (err) {
+      setErrorMessage("Error al iniciar sesión. Verifica tus credenciales.");
+      console.error("Login con email:", err);
+    }
+  };
+
   const closeError = () => {
     setErrorMessage("");
     const newParams = new URLSearchParams(searchParams);
@@ -66,7 +80,31 @@ export default function LoginPage() {
               </button>
             </div>
           )}
-  
+
+          <div className="w-full max-w-md bg-white p-6 rounded shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4">Iniciar sesión con Email</h2>
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full mb-3 px-4 py-2 border rounded"
+            />
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full mb-4 px-4 py-2 border rounded"
+            />
+            <button
+              onClick={handleEmailLogin}
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+            >
+              Iniciar sesión
+            </button>
+          </div>
+
           <button
             onClick={handleGoogleLogin}
             className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
